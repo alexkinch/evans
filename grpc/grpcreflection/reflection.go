@@ -99,8 +99,11 @@ func (c *client) FindSymbol(name string) (protoreflect.Descriptor, error) {
 		return nil, errors.Wrap(err, "failed to find file containing symbol")
 	}
 
-	// TODO: consider dependencies
-	fd, err := protodesc.NewFile(jfd.AsFileDescriptorProto(), c.resolver)
+	// Use FileOptions with AllowUnresolvable to handle missing dependencies gracefully
+	opts := protodesc.FileOptions{
+		AllowUnresolvable: true,
+	}
+	fd, err := opts.New(jfd.AsFileDescriptorProto(), c.resolver)
 	if err != nil {
 		return nil, err
 	}
