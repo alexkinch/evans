@@ -41,7 +41,7 @@ func (c *descCommand) Run(w io.Writer, args []string) error {
 	}
 
 	table := tablewriter.NewWriter(w)
-	table.SetHeader([]string{"field", "type", "repeated"})
+	table.Header([]string{"field", "type", "repeated"})
 	fields := td.(protoreflect.MessageDescriptor).Fields()
 	rows := make([][]string, fields.Len())
 	for i := 0; i < fields.Len(); i++ {
@@ -57,7 +57,7 @@ func (c *descCommand) Run(w io.Writer, args []string) error {
 		return rows[i][0] < rows[j][0]
 	})
 
-	table.AppendBulk(rows)
+	table.Bulk(rows)
 	table.Render()
 	return nil
 }

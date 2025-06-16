@@ -50,8 +50,8 @@ func (p *Presenter) Format(v interface{}) (string, error) {
 
 	var w bytes.Buffer
 	table := tablewriter.NewWriter(&w)
-	table.SetHeader(keys)
-	table.AppendBulk(rows)
+	table.Header(keys)
+	table.Bulk(rows)
 	table.Render()
 	return w.String(), nil
 }
