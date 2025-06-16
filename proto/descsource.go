@@ -92,3 +92,24 @@ func (f *files) FindSymbol(name string) (protoreflect.Descriptor, error) {
 
 	return nil, errors.Wrapf(errSymbolNotFound, "symbol %s", name)
 }
+
+func (f *files) GetAllMessages() ([]string, error) {
+	var messages []string
+	encountered := make(map[string]struct{})
+
+	for _, fd := range f.fds {
+		// Iterate through all message types in the file descriptor
+		for i := 0; i < fd.Messages().Len(); i++ {
+			msg := fd.Messages().Get(i)
+			msgName := string(msg.Name())
+
+			// Add the message if not already encountered
+			if _, found := encountered[msgName]; !found {
+				messages = append(messages, msgName)
+				encountered[msgName] = struct{}{}
+			}
+		}
+	}
+
+	return messages, nil
+}
