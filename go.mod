@@ -7,7 +7,7 @@ require (
 	github.com/bufbuild/protocompile v0.1.0
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/fatih/color v1.13.0
-	github.com/golang/protobuf v1.5.2
+	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.5.9
 	github.com/goreleaser/goreleaser v1.11.2
 	github.com/hashicorp/go-multierror v1.1.1
@@ -42,7 +42,7 @@ require (
 	golang.org/x/tools v0.6.0
 	google.golang.org/genproto v0.0.0-20221024183307-1bc688fe9f3e
 	google.golang.org/grpc v1.51.0
-	google.golang.org/protobuf v1.30.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
