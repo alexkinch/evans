@@ -17,6 +17,7 @@ import (
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 // ServiceName represents the gRPC reflection service name.
@@ -94,27 +95,115 @@ func (c *client) FindSymbol(name string) (protoreflect.Descriptor, error) {
 		return d, nil
 	}
 
+	// First try the normal approach
 	jfd, err := c.client.FileContainingSymbol(name)
-	if err != nil {
+	if err == nil {
+		// Use FileOptions with AllowUnresolvable to handle missing dependencies gracefully
+		opts := protodesc.FileOptions{
+			AllowUnresolvable: true,
+		}
+		fd, err := opts.New(jfd.AsFileDescriptorProto(), c.resolver)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := c.resolver.RegisterFile(fd); err != nil {
+			return nil, err
+		}
+
+		return c.resolver.FindDescriptorByName(fullName)
+	}
+
+	// If FileContainingSymbol fails (likely due to missing dependencies),
+	// try to get all available file descriptors and find the symbol
+	services, listErr := c.client.ListServices()
+	if listErr != nil {
+		// Return the original error if we can't even list services
 		return nil, errors.Wrap(err, "failed to find file containing symbol")
 	}
 
-	// Use FileOptions with AllowUnresolvable to handle missing dependencies gracefully
-	opts := protodesc.FileOptions{
-		AllowUnresolvable: true,
-	}
-	fd, err := opts.New(jfd.AsFileDescriptorProto(), c.resolver)
-	if err != nil {
-		return nil, err
+	// Try to find the symbol by examining each service file
+	for _, serviceName := range services {
+		serviceFile, serviceErr := c.client.FileContainingSymbol(serviceName)
+		if serviceErr != nil {
+			continue // Skip services we can't access
+		}
+
+		// Use FileOptions with AllowUnresolvable for each file
+		opts := protodesc.FileOptions{
+			AllowUnresolvable: true,
+		}
+		fd, createErr := opts.New(serviceFile.AsFileDescriptorProto(), c.resolver)
+		if createErr != nil {
+			continue // Skip files we can't create descriptors for
+		}
+
+		// Register the file if we haven't already
+		if regErr := c.resolver.RegisterFile(fd); regErr != nil {
+			// File might already be registered, that's okay
+		}
+
+		// Check if our symbol is in this file
+		if d, findErr := c.resolver.FindDescriptorByName(fullName); findErr == nil {
+			return d, nil
+		}
 	}
 
-	if err := c.resolver.RegisterFile(fd); err != nil {
-		return nil, err
-	}
-
-	return c.resolver.FindDescriptorByName(fullName)
+	// If we still can't find it, return the original error
+	return nil, errors.Wrap(err, "failed to find file containing symbol")
 }
 
 func (c *client) Reset() {
 	c.client.Reset()
+}
+
+// createStubFileDescriptor creates a minimal stub file descriptor for missing dependencies
+func createStubFileDescriptor(fileName string) *descriptorpb.FileDescriptorProto {
+	return &descriptorpb.FileDescriptorProto{
+		Name:    &fileName,
+		Package: nil, // Empty package for now
+		Syntax:  stringPtr("proto3"),
+	}
+}
+
+func stringPtr(s string) *string {
+	return &s
+}
+
+// tolerantFileResolver wraps the standard resolver to be more tolerant of missing files
+type tolerantFileResolver struct {
+	*protoregistry.Files
+}
+
+func (r *tolerantFileResolver) FindFileByPath(path string) (protoreflect.FileDescriptor, error) {
+	// First try the normal resolution
+	fd, err := r.Files.FindFileByPath(path)
+	if err == nil {
+		return fd, nil
+	}
+
+	// If it's a known problematic dependency, create a stub
+	if isKnownProblematicDependency(path) {
+		stubProto := createStubFileDescriptor(path)
+		opts := protodesc.FileOptions{
+			AllowUnresolvable: true,
+		}
+		return opts.New(stubProto, r.Files)
+	}
+
+	return nil, err
+}
+
+func isKnownProblematicDependency(path string) bool {
+	knownProblematic := []string{
+		"gorm/options.proto",
+		"google/protobuf/descriptor.proto",
+		"validate/validate.proto",
+	}
+	for _, known := range knownProblematic {
+		if strings.Contains(path, known) {
+			return true
+		}
+	}
+	return false
 }
