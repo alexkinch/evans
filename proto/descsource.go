@@ -15,6 +15,12 @@ type DescriptorSource interface {
 	FindSymbol(name string) (protoreflect.Descriptor, error)
 }
 
+// DescriptorSourceWithFallback extends DescriptorSource with fallback methods for Connect compatibility
+type DescriptorSourceWithFallback interface {
+	DescriptorSource
+	GetAllMessages() ([]string, error)
+}
+
 type reflection struct {
 	client interface {
 		ListServices() ([]string, error)
@@ -35,6 +41,15 @@ func (r *reflection) ListServices() ([]string, error) {
 
 func (r *reflection) FindSymbol(name string) (protoreflect.Descriptor, error) {
 	return r.client.FindSymbol(name)
+}
+
+func (r *reflection) GetAllMessages() ([]string, error) {
+	// Check if the underlying client supports GetAllMessages
+	if client, ok := r.client.(interface{ GetAllMessages() ([]string, error) }); ok {
+		return client.GetAllMessages()
+	}
+	// Fallback: return empty list if not supported
+	return []string{}, nil
 }
 
 type files struct {

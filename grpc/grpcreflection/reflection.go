@@ -12,12 +12,10 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
-	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 // ServiceName represents the gRPC reflection service name.
@@ -35,6 +33,8 @@ type Client interface {
 	FindSymbol(name string) (protoreflect.Descriptor, error)
 	// Reset clears internal states of Client.
 	Reset()
+	// GetAllMessages extracts all message types from all available services without full dependency resolution
+	GetAllMessages() ([]string, error)
 }
 
 type client struct {
@@ -52,16 +52,26 @@ func getCtx(headers map[string][]string) context.Context {
 
 // NewClient returns an instance of gRPC reflection client for gRPC protocol.
 func NewClient(conn grpc.ClientConnInterface, headers map[string][]string) Client {
+	ctx := getCtx(headers)
+	// Use the same approach as grpcurl: NewClientAuto + AllowMissingFileDescriptors
+	reflectionClient := gr.NewClientAuto(ctx, conn)
+	reflectionClient.AllowMissingFileDescriptors() // This is the key difference!
+
 	return &client{
-		client:   gr.NewClientV1Alpha(getCtx(headers), grpc_reflection_v1alpha.NewServerReflectionClient(conn)),
+		client:   reflectionClient,
 		resolver: protoregistry.GlobalFiles,
 	}
 }
 
 // NewWebClient returns an instance of gRPC reflection client for gRPC-Web protocol.
 func NewWebClient(conn *grpcweb.ClientConn, headers map[string][]string) Client {
+	ctx := getCtx(headers)
+	// Use the same pattern as the regular client
+	reflectionClient := gr.NewClientV1Alpha(ctx, grpcweb_reflection_v1alpha.NewServerReflectionClient(conn))
+	reflectionClient.AllowMissingFileDescriptors() // Apply the same fix for web client
+
 	return &client{
-		client:   gr.NewClientV1Alpha(getCtx(headers), grpcweb_reflection_v1alpha.NewServerReflectionClient(conn)),
+		client:   reflectionClient,
 		resolver: protoregistry.GlobalFiles,
 	}
 }
@@ -95,111 +105,96 @@ func (c *client) FindSymbol(name string) (protoreflect.Descriptor, error) {
 		return d, nil
 	}
 
-	// First try the normal approach
+	// Get file from reflection - this should work now with AllowMissingFileDescriptors()
 	jfd, err := c.client.FileContainingSymbol(name)
-	if err == nil {
-		opts := protodesc.FileOptions{
-			AllowUnresolvable: true,
-		}
-		fd, err := opts.New(jfd.AsFileDescriptorProto(), c.resolver)
-		if err != nil {
-			return nil, err
-		}
-
-		if err := c.resolver.RegisterFile(fd); err != nil {
-			return nil, err
-		}
-
-		return c.resolver.FindDescriptorByName(fullName)
-	}
-
-	// If that fails, try a more aggressive approach: get all services and try to load each one
-	services, listErr := c.client.ListServices()
-	if listErr != nil {
+	if err != nil {
 		return nil, errors.Wrap(err, "failed to find file containing symbol")
 	}
 
-	// For each service, try to get its file descriptor and load it aggressively
-	for _, serviceName := range services {
-		// Try to get the file for this service
-		serviceFile, serviceErr := c.client.FileContainingSymbol(serviceName)
-		if serviceErr != nil {
-			continue // Skip services we can't access
-		}
-
-		// Try to create a file descriptor with maximum tolerance
-		opts := protodesc.FileOptions{
-			AllowUnresolvable: true,
-		}
-		fd, createErr := opts.New(serviceFile.AsFileDescriptorProto(), c.resolver)
-		if createErr != nil {
-			continue // Skip files we can't process
-		}
-
-		// Try to register the file (ignore errors - might already be registered)
-		c.resolver.RegisterFile(fd)
-
-		// Now check if our target symbol is available
-		if d, findErr := c.resolver.FindDescriptorByName(fullName); findErr == nil {
-			return d, nil
-		}
+	// Convert from jhump/protoreflect descriptor to protoreflect.Descriptor
+	opts := protodesc.FileOptions{
+		AllowUnresolvable: true,
+	}
+	fd, err := opts.New(jfd.AsFileDescriptorProto(), c.resolver)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create file descriptor")
 	}
 
-	// If we still can't find it, return the original error
-	return nil, errors.Wrap(err, "failed to find file containing symbol")
+	if err := c.resolver.RegisterFile(fd); err != nil {
+		return nil, errors.Wrap(err, "failed to register file descriptor")
+	}
+
+	return c.resolver.FindDescriptorByName(fullName)
 }
 
 func (c *client) Reset() {
 	c.client.Reset()
 }
 
-// createStubFileDescriptor creates a minimal stub file descriptor for missing dependencies
-func createStubFileDescriptor(fileName string) *descriptorpb.FileDescriptorProto {
-	return &descriptorpb.FileDescriptorProto{
-		Name:    &fileName,
-		Package: nil, // Empty package for now
-		Syntax:  stringPtr("proto3"),
-	}
-}
+// GetAllMessages extracts all message types from all available services without full dependency resolution
+func (c *client) GetAllMessages() ([]string, error) {
+	var messages []string
+	messageSet := make(map[string]bool)
 
-func stringPtr(s string) *string {
-	return &s
-}
-
-// tolerantFileResolver wraps the standard resolver to be more tolerant of missing files
-type tolerantFileResolver struct {
-	*protoregistry.Files
-}
-
-func (r *tolerantFileResolver) FindFileByPath(path string) (protoreflect.FileDescriptor, error) {
-	// First try the normal resolution
-	fd, err := r.Files.FindFileByPath(path)
-	if err == nil {
-		return fd, nil
+	services, err := c.client.ListServices()
+	if err != nil {
+		return nil, err
 	}
 
-	// If it's a known problematic dependency, create a stub
-	if isKnownProblematicDependency(path) {
-		stubProto := createStubFileDescriptor(path)
-		opts := protodesc.FileOptions{
-			AllowUnresolvable: true,
+	for _, serviceName := range services {
+		serviceFile, serviceErr := c.client.FileContainingSymbol(serviceName)
+		if serviceErr != nil {
+			continue // Skip services we can't access
 		}
-		return opts.New(stubProto, r.Files)
-	}
 
-	return nil, err
-}
+		fileProto := serviceFile.AsFileDescriptorProto()
+		pkg := ""
+		if fileProto.Package != nil {
+			pkg = *fileProto.Package
+		}
 
-func isKnownProblematicDependency(path string) bool {
-	knownProblematic := []string{
-		"gorm/options.proto",
-		"google/protobuf/descriptor.proto",
-		"validate/validate.proto",
-	}
-	for _, known := range knownProblematic {
-		if strings.Contains(path, known) {
-			return true
+		// Extract message types directly from the proto
+		for _, msgType := range fileProto.MessageType {
+			if msgType.Name == nil {
+				continue
+			}
+
+			var msgName string
+			if pkg != "" {
+				msgName = pkg + "." + *msgType.Name
+			} else {
+				msgName = *msgType.Name
+			}
+
+			if !messageSet[msgName] {
+				messages = append(messages, msgName)
+				messageSet[msgName] = true
+			}
+		}
+
+		// Also extract message types from services (request/response types)
+		for _, service := range fileProto.Service {
+			if service.Method == nil {
+				continue
+			}
+			for _, method := range service.Method {
+				if method.InputType != nil {
+					inputType := strings.TrimPrefix(*method.InputType, ".")
+					if !messageSet[inputType] {
+						messages = append(messages, inputType)
+						messageSet[inputType] = true
+					}
+				}
+				if method.OutputType != nil {
+					outputType := strings.TrimPrefix(*method.OutputType, ".")
+					if !messageSet[outputType] {
+						messages = append(messages, outputType)
+						messageSet[outputType] = true
+					}
+				}
+			}
 		}
 	}
-	return false
+
+	return messages, nil
 }
