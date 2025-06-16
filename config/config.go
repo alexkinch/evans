@@ -201,6 +201,9 @@ func bindFlags(vp *viper.Viper, fs *pflag.FlagSet) {
 		switch f.Value.Type() {
 		case "slice of strings":
 			currentMap := vp.GetStringMapStringSlice(k)
+			if currentMap == nil {
+				currentMap = make(map[string][]string)
+			}
 			newMap := stringToStringSliceToMap(f.Value.String())
 			encountered := make(map[string]map[string]interface{})
 			for k, v := range currentMap {
@@ -225,6 +228,9 @@ func bindFlags(vp *viper.Viper, fs *pflag.FlagSet) {
 			// There is pflag.StringToString which converts 'key=val' to a map structure.
 			// However, currently, we don't use BindPFlag because it has some bugs.
 			currentMap := vp.GetStringMapString(k)
+			if currentMap == nil {
+				currentMap = make(map[string]string)
+			}
 			newMap := stringToStringToMap(f.Value.String())
 			for k, v := range newMap {
 				currentMap[k] = v

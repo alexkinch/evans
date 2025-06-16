@@ -1,19 +1,21 @@
-+-----------------------------+
-|           MESSAGE           |
-+-----------------------------+
-| MapResponse                 |
-| SimpleRequest               |
-| SimpleResponse              |
-| UnaryBytesRequest           |
-| UnaryEnumRequest            |
-| UnaryHeaderRequest          |
-| UnaryMapMessageRequest      |
-| UnaryMapRequest             |
-| UnaryMessageRequest         |
-| UnaryOneofRequest           |
-| UnaryRepeatedEnumRequest    |
-| UnaryRepeatedMessageRequest |
-| UnaryRepeatedRequest        |
-| UnarySelfRequest            |
-+-----------------------------+
+┌─────────────────────────────┐
+│           MESSAGE           │
+├─────────────────────────────┤
+│ MapResponse                 │
+│ Name                        │
+│ Person                      │
+│ SimpleRequest               │
+│ SimpleResponse              │
+│ UnaryBytesRequest           │
+│ UnaryEnumRequest            │
+│ UnaryHeaderRequest          │
+│ UnaryMapMessageRequest      │
+│ UnaryMapRequest             │
+│ UnaryMessageRequest         │
+│ UnaryOneofRequest           │
+│ UnaryRepeatedEnumRequest    │
+│ UnaryRepeatedMessageRequest │
+│ UnaryRepeatedRequest        │
+│ UnarySelfRequest            │
+└─────────────────────────────┘
 

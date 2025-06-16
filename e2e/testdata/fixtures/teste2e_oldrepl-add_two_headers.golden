@@ -1,9 +1,9 @@
 
-+-------------+-----------+
-|     KEY     |    VAL    |
-+-------------+-----------+
-| grpc-client | evans     |
-| mizore      | yoroizuka |
-| nozomi      | kasaki    |
-+-------------+-----------+
+┌─────────────┬───────────┐
+│     KEY     │    VAL    │
+├─────────────┼───────────┤
+│ grpc-client │ evans     │
+│ mizore      │ yoroizuka │
+│ nozomi      │ kasaki    │
+└─────────────┴───────────┘
 
