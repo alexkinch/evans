@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -23,9 +24,17 @@ func (m *dependencyManager) FormatMessages() (string, error) {
 		Messages []message `json:"messages"`
 	}
 	encountered := make(map[string]struct{})
+
 	for _, svc := range svcs {
 		rpcs, err := m.ListRPCs(svc)
 		if err != nil {
+			// Check if this is a dependency resolution error
+			if strings.Contains(err.Error(), "unresolvable dependencies") ||
+				strings.Contains(err.Error(), "File not found:") ||
+				strings.Contains(err.Error(), "failed to find file containing symbol") {
+				// Skip this service and continue with others
+				continue
+			}
 			return "", errors.Wrap(err, "failed to list RPCs")
 		}
 		for _, rpc := range rpcs {

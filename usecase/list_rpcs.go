@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"strings"
+
 	"github.com/ktr0731/evans/grpc"
 	"github.com/ktr0731/evans/proto"
 	"github.com/pkg/errors"
@@ -29,9 +31,28 @@ func (m *dependencyManager) listRPCs(fqsn string) ([]*grpc.RPC, error) {
 		return nil, err
 	}
 
-	for _, service := range svcs {
+	var targetServices []string
+	if fqsn != "" {
+		// Looking for a specific service
+		targetServices = []string{fqsn}
+	} else {
+		// Looking for all services
+		targetServices = svcs
+	}
+
+	for _, service := range targetServices {
 		d, err := m.descSource.FindSymbol(service)
 		if err != nil {
+			// Check if this is a dependency resolution error
+			if strings.Contains(err.Error(), "File not found:") || strings.Contains(err.Error(), "failed to find file containing symbol") {
+				if fqsn != "" {
+					// If we're looking for a specific service, return a helpful error
+					return nil, errors.Wrapf(err, "service %s has unresolvable dependencies (this may be due to missing proto dependencies)", service)
+				} else {
+					// If we're listing all services, skip this one and continue
+					continue
+				}
+			}
 			return nil, errors.Wrapf(err, "failed to resolve service %s", service)
 		}
 
