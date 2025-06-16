@@ -64,6 +64,7 @@ jobs:
         context: .
         file: Dockerfile
         push: false
+        load: true
         tags: evans:ci
         cache-from: type=gha
         cache-to: type=gha,mode=max
