@@ -31,15 +31,16 @@ snapshot:
 changelog:
   sort: asc
 
-brews:
-  - repository:
-      owner: alexkinch
-      name: homebrew-evans
-    url_template: "http://github.com/alexkinch/evans/releases/download/{{ .Tag }}/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}.tar.gz"
-    commit_author:
-      name: alexkinch
-      email: alex@alexkinch.com
-    homepage: "https://github.com/alexkinch/evans"
-    description: "Evans: more expressive universal gRPC client (Connect-compatible fork)"
-    install: |
-      bin.install "evans"
+# Homebrew formula disabled - uncomment and create homebrew-evans repo if needed
+# brews:
+#   - repository:
+#       owner: alexkinch
+#       name: homebrew-evans
+#     url_template: "http://github.com/alexkinch/evans/releases/download/{{ .Tag }}/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}.tar.gz"
+#     commit_author:
+#       name: alexkinch
+#       email: alex@alexkinch.com
+#     homepage: "https://github.com/alexkinch/evans"
+#     description: "Evans: more expressive universal gRPC client (Connect-compatible fork)"
+#     install: |
+#       bin.install "evans"
