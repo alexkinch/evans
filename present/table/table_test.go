@@ -9,12 +9,12 @@ import (
 
 func TestPresenter(t *testing.T) {
 	t.Run("struct", func(t *testing.T) {
-		const expected = `+----------+--------+------------+
-|  FIELD1  | FIELD2 |   FIELD3   |
-+----------+--------+------------+
-| field1-1 |    100 | {field3-1} |
-| field1-2 |    300 | {field3-2} |
-+----------+--------+------------+
+		const expected = `┌──────────┬─────────┬────────────┐
+│ FIELD 1  │ FIELD 2 │  FIELD 3   │
+├──────────┼─────────┼────────────┤
+│ field1-1 │ 100     │ {field3-1} │
+│ field1-2 │ 300     │ {field3-2} │
+└──────────┴─────────┴────────────┘
 `
 		type Struct struct {
 			StructField string

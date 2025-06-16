@@ -36,12 +36,12 @@ func TestNewClient(t *testing.T) {
 	}{
 		"certKey is missing":                      {useTLS: true, cert: "foo", err: ErrMutualAuthParamsAreNotEnough},
 		"cert is missing":                         {useTLS: true, certKey: "bar", err: ErrMutualAuthParamsAreNotEnough},
-		"certKey is missing, but useTLS is false": {cert: "foo"},
-		"cert is missing, but useTLS is false":    {certKey: "foo"},
-		"enable server TLS":                       {useTLS: true},
-		"enable server TLS with a trusted CA":     {useTLS: true, cacert: certPath("rootCA.pem")},
-		"enable mutual TLS":                       {useTLS: true, cert: certPath("localhost.pem"), certKey: certPath("localhost-key.pem")},
-		"enable mutual TLS with a trusted CA":     {useTLS: true, cacert: certPath("rootCA.pem"), cert: certPath("localhost.pem"), certKey: certPath("localhost-key.pem")},
+		"certKey is missing, but useTLS is false": {addr: "localhost:50051", cert: "foo"},
+		"cert is missing, but useTLS is false":    {addr: "localhost:50051", certKey: "foo"},
+		"enable server TLS":                       {addr: "localhost:50051", useTLS: true},
+		"enable server TLS with a trusted CA":     {addr: "localhost:50051", useTLS: true, cacert: certPath("rootCA.pem")},
+		"enable mutual TLS":                       {addr: "localhost:50051", useTLS: true, cert: certPath("localhost.pem"), certKey: certPath("localhost-key.pem")},
+		"enable mutual TLS with a trusted CA":     {addr: "localhost:50051", useTLS: true, cacert: certPath("rootCA.pem"), cert: certPath("localhost.pem"), certKey: certPath("localhost-key.pem")},
 		"invalid cacert file path":                {useTLS: true, cacert: "fooCA.pem", hasErr: true},
 		"invalid cert and key file path":          {useTLS: true, cert: "foo.pem", certKey: "foo-key.pem", hasErr: true},
 	}
