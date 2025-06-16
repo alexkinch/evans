@@ -98,7 +98,6 @@ func (c *client) FindSymbol(name string) (protoreflect.Descriptor, error) {
 	// First try the normal approach
 	jfd, err := c.client.FileContainingSymbol(name)
 	if err == nil {
-		// Use FileOptions with AllowUnresolvable to handle missing dependencies gracefully
 		opts := protodesc.FileOptions{
 			AllowUnresolvable: true,
 		}
@@ -114,36 +113,33 @@ func (c *client) FindSymbol(name string) (protoreflect.Descriptor, error) {
 		return c.resolver.FindDescriptorByName(fullName)
 	}
 
-	// If FileContainingSymbol fails (likely due to missing dependencies),
-	// try to get all available file descriptors and find the symbol
+	// If that fails, try a more aggressive approach: get all services and try to load each one
 	services, listErr := c.client.ListServices()
 	if listErr != nil {
-		// Return the original error if we can't even list services
 		return nil, errors.Wrap(err, "failed to find file containing symbol")
 	}
 
-	// Try to find the symbol by examining each service file
+	// For each service, try to get its file descriptor and load it aggressively
 	for _, serviceName := range services {
+		// Try to get the file for this service
 		serviceFile, serviceErr := c.client.FileContainingSymbol(serviceName)
 		if serviceErr != nil {
 			continue // Skip services we can't access
 		}
 
-		// Use FileOptions with AllowUnresolvable for each file
+		// Try to create a file descriptor with maximum tolerance
 		opts := protodesc.FileOptions{
 			AllowUnresolvable: true,
 		}
 		fd, createErr := opts.New(serviceFile.AsFileDescriptorProto(), c.resolver)
 		if createErr != nil {
-			continue // Skip files we can't create descriptors for
+			continue // Skip files we can't process
 		}
 
-		// Register the file if we haven't already
-		if regErr := c.resolver.RegisterFile(fd); regErr != nil {
-			// File might already be registered, that's okay
-		}
+		// Try to register the file (ignore errors - might already be registered)
+		c.resolver.RegisterFile(fd)
 
-		// Check if our symbol is in this file
+		// Now check if our target symbol is available
 		if d, findErr := c.resolver.FindDescriptorByName(fullName); findErr == nil {
 			return d, nil
 		}
