@@ -1,34 +1,38 @@
+version: 2
+
 builds:
--
-  env:
-    - CGO_ENABLED=0
-  goos:
-    - darwin
-    - linux
-    - windows
-  goarch:
-    - amd64
-    - arm
-    - arm64
-    - '386'
-  flags:
-    - -tags=github
-  ldflags:
-    - '-extldflags "-static" -X github.com/alexkinch/evans/vendor/github.com/ktr0731/go-updater/github.isGitHubReleasedBinary=true'
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm
+      - arm64
+      - '386'
+    flags:
+      - -tags=github
+    ldflags:
+      - '-extldflags "-static" -X github.com/alexkinch/evans/vendor/github.com/ktr0731/go-updater/github.isGitHubReleasedBinary=true'
+
 archives:
--
-  name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
-  files:
-    - none* # Include only the binary to work auto updating correctly.
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - none* # Include only the binary to work auto updating correctly.
+
 checksum:
   name_template: 'checksums.txt'
+
 snapshot:
   name_template: "{{ .Tag }}-next"
+
 changelog:
   sort: asc
+
 brews:
-  -
-    tap:
+  - repository:
       owner: alexkinch
       name: homebrew-evans
     url_template: "http://github.com/alexkinch/evans/releases/download/{{ .Tag }}/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}.tar.gz"
