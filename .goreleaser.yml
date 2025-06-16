@@ -14,7 +14,7 @@ builds:
   flags:
     - -tags=github
   ldflags:
-    - '-extldflags "-static" -X github.com/ktr0731/evans/vendor/github.com/ktr0731/go-updater/github.isGitHubReleasedBinary=true'
+    - '-extldflags "-static" -X github.com/alexkinch/evans/vendor/github.com/ktr0731/go-updater/github.isGitHubReleasedBinary=true'
 archives:
 -
   name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
@@ -29,13 +29,13 @@ changelog:
 brews:
   -
     tap:
-      owner: ktr0731
+      owner: alexkinch
       name: homebrew-evans
-    url_template: "http://github.com/ktr0731/evans/releases/download/{{ .Tag }}/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}.tar.gz"
+    url_template: "http://github.com/alexkinch/evans/releases/download/{{ .Tag }}/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}.tar.gz"
     commit_author:
-      name: ktr0731
-      email: ktr@syfm.me
-    homepage: "https://evans.syfm.me"
-    description: "Evans: more expressive universal gRPC client"
+      name: alexkinch
+      email: alex@alexkinch.com
+    homepage: "https://github.com/alexkinch/evans"
+    description: "Evans: more expressive universal gRPC client (Connect-compatible fork)"
     install: |
       bin.install "evans"
