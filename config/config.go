@@ -210,6 +210,9 @@ func bindFlags(vp *viper.Viper, fs *pflag.FlagSet) {
 				}
 			}
 			for k, v := range newMap {
+				if encountered[k] == nil {
+					encountered[k] = make(map[string]interface{})
+				}
 				for _, vv := range v {
 					if _, ok := encountered[k][vv]; ok {
 						continue
