@@ -21,6 +21,9 @@ import (
 type InteractiveFiller struct {
 	prompt       prompt.Prompt
 	prefixFormat string
+	descSource   interface {
+		FindSymbol(name string) (protoreflect.Descriptor, error)
+	}
 }
 
 // NewInteractiveFiller instantiates a new filler that fills each field interactively.
@@ -28,7 +31,26 @@ func NewInteractiveFiller(prompt prompt.Prompt, prefixFormat string) *Interactiv
 	return &InteractiveFiller{
 		prompt:       prompt,
 		prefixFormat: prefixFormat,
+		descSource:   nil, // Will be set later via SetDescriptorSource if needed
 	}
+}
+
+// NewInteractiveFillerWithDescriptorSource creates a new interactive filler with descriptor source for enum resolution.
+func NewInteractiveFillerWithDescriptorSource(prompt prompt.Prompt, prefixFormat string, descSource interface {
+	FindSymbol(name string) (protoreflect.Descriptor, error)
+}) *InteractiveFiller {
+	return &InteractiveFiller{
+		prompt:       prompt,
+		prefixFormat: prefixFormat,
+		descSource:   descSource,
+	}
+}
+
+// SetDescriptorSource sets the descriptor source for enum resolution.
+func (f *InteractiveFiller) SetDescriptorSource(descSource interface {
+	FindSymbol(name string) (protoreflect.Descriptor, error)
+}) {
+	f.descSource = descSource
 }
 
 // Fill receives v that is an instance of *dynamic.Message.
@@ -36,7 +58,7 @@ func NewInteractiveFiller(prompt prompt.Prompt, prefixFormat string) *Interactiv
 //
 // Note that Fill resets the previous state when it is called again.
 func (f *InteractiveFiller) Fill(v *dynamicpb.Message, opts fill.InteractiveFillerOpts) error {
-	resolver := newResolver(f.prompt, f.prefixFormat, prompt.ColorInitial, v, nil, false, opts)
+	resolver := newResolver(f.prompt, f.prefixFormat, prompt.ColorInitial, v, nil, false, opts, f.descSource)
 	_, err := resolver.resolve()
 	if err != nil {
 		return err
@@ -58,7 +80,10 @@ type resolver struct {
 	// If the message is not a field or not a repeated field, it is false.
 	repeated bool
 
-	opts fill.InteractiveFillerOpts
+	opts       fill.InteractiveFillerOpts
+	descSource interface {
+		FindSymbol(name string) (protoreflect.Descriptor, error)
+	}
 }
 
 func newResolver(
@@ -69,6 +94,9 @@ func newResolver(
 	ancestors []string,
 	repeated bool,
 	opts fill.InteractiveFillerOpts,
+	descSource interface {
+		FindSymbol(name string) (protoreflect.Descriptor, error)
+	},
 ) *resolver {
 	return &resolver{
 		prompt:       prompt,
@@ -79,6 +107,7 @@ func newResolver(
 		ancestors:    ancestors,
 		repeated:     repeated,
 		opts:         opts,
+		descSource:   descSource,
 	}
 }
 
@@ -151,6 +180,7 @@ func (r *resolver) resolveField(f protoreflect.FieldDescriptor) error {
 				append(r.ancestors, string(f.Name())),
 				r.repeated || f.IsList(),
 				r.opts,
+				r.descSource,
 			)
 			msg, err := msgr.resolve()
 			if err != nil {
@@ -353,9 +383,36 @@ func (r *resolver) resolveEnum(prefix string, e protoreflect.EnumDescriptor) (in
 		choices = append(choices, string(v.Name()))
 	}
 
+	// Handle case where enum has no values - try to re-resolve via descriptor source
+	if len(choices) == 0 && r.descSource != nil {
+		// Try to re-resolve the enum using the descriptor source
+		resolved, err := r.descSource.FindSymbol(string(e.FullName()))
+		if err == nil {
+			if enumDesc, ok := resolved.(protoreflect.EnumDescriptor); ok {
+				// Use the re-resolved enum descriptor
+				e = enumDesc
+				choices = make([]string, 0, e.Values().Len())
+				for i := 0; i < e.Values().Len(); i++ {
+					v := e.Values().Get(i)
+					choices = append(choices, string(v.Name()))
+				}
+			}
+		}
+	}
+
+	// Handle case where enum still has no values after re-resolution
+	if len(choices) == 0 {
+		return 0, fmt.Errorf("enum %s has no values defined", e.FullName())
+	}
+
 	choice, err := r.selectChoices(prefix, choices)
 	if err != nil {
 		return 0, err
+	}
+
+	// Double-check bounds to prevent panic
+	if choice >= e.Values().Len() {
+		return 0, fmt.Errorf("invalid choice %d for enum %s with %d values", choice, e.FullName(), e.Values().Len())
 	}
 
 	num := int32(e.Values().Get(choice).Number())

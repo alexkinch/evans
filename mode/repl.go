@@ -30,7 +30,7 @@ func RunAsREPLMode(cfg *config.Config, ui cui.UI, cache *cache.Cache) error {
 
 	usecase.Inject(
 		usecase.Dependencies{
-			InteractiveFiller: proto.NewInteractiveFiller(prompt.New(), cfg.REPL.InputPromptFormat),
+			InteractiveFiller: proto.NewInteractiveFillerWithDescriptorSource(prompt.New(), cfg.REPL.InputPromptFormat, descSource),
 			GRPCClient:        gRPCClient,
 			DescSource:        descSource,
 			ResourcePresenter: table.NewPresenter(),
