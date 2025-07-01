@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.4
 
 require (
-	github.com/Songmu/gocredits v0.3.0
+	github.com/Songmu/gocredits v0.3.1
 	github.com/bufbuild/protocompile v0.14.1
 	github.com/chzyer/readline v1.5.1
 	github.com/fatih/color v1.18.0
