@@ -16,7 +16,7 @@ require (
 	github.com/hashicorp/go-version v1.7.0
 	github.com/jhump/protoreflect v1.17.0
 	github.com/k0kubun/pp v3.0.1+incompatible
-	github.com/kisielk/godepgraph v0.0.0-20190626013829-57a7e4a651a9
+	github.com/kisielk/godepgraph v1.0.0
 	github.com/ktr0731/bump v0.1.0
 	github.com/ktr0731/go-multierror v0.0.0-20171204182908-b7773ae21874
 	github.com/ktr0731/go-prompt v0.2.4
