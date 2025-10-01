@@ -1,8 +1,6 @@
 module github.com/ktr0731/evans
 
-go 1.23.0
-
-toolchain go1.24.4
+go 1.25
 
 require (
 	github.com/Songmu/gocredits v0.3.0
@@ -25,7 +23,7 @@ require (
 	github.com/ktr0731/grpc-test v0.1.12
 	github.com/ktr0731/grpc-web-go-client v0.2.8
 	github.com/manifoldco/promptui v0.9.0
-	github.com/matryer/moq v0.2.7
+	github.com/matryer/moq v0.6.0
 	github.com/mattn/go-colorable v0.1.14
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mitchellh/go-homedir v1.1.0
