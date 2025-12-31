@@ -231,13 +231,12 @@ func TestE2E_OldCLI(t *testing.T) {
 			reflection:   true,
 			expectedCode: 1,
 		},
-		// TODO: Re-enable after fixing symbol resolution issue with reflection changes
-		// "call unary RPC with TLS and reflection by CLI mode": {
-		// 	args:        "--tls -r --host localhost --cacert testdata/rootCA.pem --service Example --call Unary --file testdata/unary_call.in",
-		// 	tls:         true,
-		// 	reflection:  true,
-		// 	expectedOut: `{ "message": "oumae" }`,
-		// },
+		"call unary RPC with TLS and reflection by CLI mode": {
+			args:        "--tls -r --host localhost --cacert testdata/rootCA.pem --service Example --call Unary --file testdata/unary_call.in",
+			tls:         true,
+			reflection:  true,
+			expectedOut: `{ "message": "oumae" }`,
+		},
 		"call unary RPC with TLS and --servername by CLI mode": {
 			args:        "--tls --servername localhost --cacert testdata/rootCA.pem --service Example --call Unary --file testdata/unary_call.in testdata/test.proto",
 			tls:         true,
@@ -260,8 +259,10 @@ func TestE2E_OldCLI(t *testing.T) {
 		},
 
 		// CLI mode with gRPC-Web
-
-		// TODO: Re-enable after fixing gRPC-Web nil pointer panics
+		// NOTE: gRPC-Web tests are disabled due to a nil pointer panic in grpc-web-go-client@v0.2.8
+		// The library uses an older protobuf API (v1.21.0) incompatible with current protobuf (v1.36+).
+		// See: https://github.com/ktr0731/grpc-web-go-client - needs upstream update.
+		//
 		// "cannot send a request to gRPC-Web server because the server didn't enable gRPC-Web": {
 		// 	args:         "--web --package api --service Example --call Unary --file testdata/unary_call.in testdata/test.proto testdata/test.proto",
 		// 	web:          false,

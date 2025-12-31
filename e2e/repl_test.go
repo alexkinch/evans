@@ -66,12 +66,12 @@ func TestE2E_REPL(t *testing.T) {
 			commonFlags: "--proto testdata/test.proto",
 			input:       []interface{}{"package api", "service Example", "call --enrich Unary", "kaguya"},
 		},
-		// TODO: Re-enable after fixing binary data formatting in golden files
-		// "call UnaryHeaderTrailerFailure by selecting package and service with enriched output": {
-		// 	commonFlags: "--proto testdata/test.proto",
-		// 	input:       []interface{}{"package api", "service Example", "call --enrich UnaryHeaderTrailerFailure", "kaguya"},
-		// 	hasErr:      true,
-		// },
+		"call UnaryHeaderTrailerFailure by selecting package and service with enriched output": {
+			commonFlags: "--proto testdata/test.proto",
+			input:       []interface{}{"package api", "service Example", "call --enrich UnaryHeaderTrailerFailure", "kaguya"},
+			hasErr:      true,
+			skipGolden:  true, // Skip golden: grpc-status-details-bin contains varint-encoded data that varies between runs
+		},
 		"call Unary by selecting only service": {
 			commonFlags: "--proto testdata/test.proto",
 			input:       []interface{}{"service Example", "call Unary", "kaguya"},
@@ -171,9 +171,11 @@ func TestE2E_REPL(t *testing.T) {
 			input:       []interface{}{"call --dig-manually UnaryEcho", 0, prompt.ErrAbort},
 		},
 
-		// TODO: Re-enable after fixing gRPC-Web nil pointer panics
-		// call (gRPC-Web)
-
+		// gRPC-Web tests
+		// NOTE: gRPC-Web tests are disabled due to a nil pointer panic in grpc-web-go-client@v0.2.8
+		// The library uses an older protobuf API (v1.21.0) incompatible with current protobuf (v1.36+).
+		// See: https://github.com/ktr0731/grpc-web-go-client - needs upstream update.
+		//
 		// "call client streaming RPC against to gRPC-Web server": {
 		// 	commonFlags: "--web --proto testdata/test.proto",
 		// 	web:         true,

@@ -10,7 +10,10 @@ grpc-status-details-bin: internal errorC
 fielddescriptionT
 2type.googleapis.com/google.rpc.PreconditionFailure
 
-typesubjectdescription
+typesubjectdescription.
+%type.googleapis.com/api.FailureDetail
+0016
+0type.googleapis.com/api.IndependentFailureDetail
 trailer_key1: trailer_val1
 trailer_key2: trailer_val2
 
@@ -20,5 +23,7 @@ message: "internal error"
 details: 
   {"@type": "type.googleapis.com/google.rpc.BadRequest", "fieldViolations": [{"description": "description", "field": "field"}]}
   {"@type": "type.googleapis.com/google.rpc.PreconditionFailure", "violations": [{"description": "description", "subject": "subject", "type": "type"}]}
+  {"@type": "type.googleapis.com/api.FailureDetail", "code": "001"}
+  {"@type": "type.googleapis.com/api.IndependentFailureDetail", "code": "BAR"}
 
 
