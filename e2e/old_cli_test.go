@@ -372,6 +372,7 @@ Options:
         --web                            use gRPC-Web protocol (default "false")
         --reflection, -r                 use gRPC reflection (default "false")
         --tls, -t                        use a secure TLS connection (default "false")
+        --tlsinsecure                    skip TLS validation (default "false")
         --cacert string                  the CA certificate file for verifying the server
         --cert string                    the certificate file for mutual TLS auth. it must be provided with --certkey.
         --certkey string                 the private key file for mutual TLS auth. it must be provided with --cert.

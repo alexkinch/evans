@@ -48,7 +48,7 @@ func TestNewClient(t *testing.T) {
 	for name, c := range cases {
 		c := c
 		t.Run(name, func(t *testing.T) {
-			_, err := NewClient(c.addr, "", c.useReflection, c.useTLS, c.cacert, c.cert, c.certKey, nil)
+			_, err := NewClient(c.addr, "", c.useReflection, c.useTLS, false, c.cacert, c.cert, c.certKey, nil)
 			if c.err != nil {
 				if err == nil {
 					t.Fatalf("NewClient must return an error, but got nil")
